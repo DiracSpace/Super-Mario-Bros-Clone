@@ -10,6 +10,6 @@
   "author": "DiracSpace",
   "license": "ISC",
   "dependencies": {
-    "serve": "^1.4.0"
+    "serve": ">=1.7.3"
   }
 }
