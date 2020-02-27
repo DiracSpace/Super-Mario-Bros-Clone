@@ -8,24 +8,29 @@ export default class SpriteSheet {
     }
 
     // method for saving image in buffer
-    define(name, x, y) {
+    define(name, x, y, width, height) {
         const buffer = document.createElement('canvas'); // canvas buffer for images with same attributes
         // html canvas attributes
-        buffer.width = this.width;
-        buffer.height = this.height;
+        buffer.width = width;
+        buffer.height = height;
         // start drawing image
         buffer.getContext('2d').drawImage(
             this.image,
-            x * this.width,
-            y * this.height,
-            this.width,
-            this.height,
+            x,
+            y,
+            width,
+            height,
             0,
             0,
-            this.width,
-            this.height);
+            width,
+            height);
         // add buffer so we can call with name the values
         this.tiles.set(name, buffer);
+    }
+
+    // define function changed, caused some problems
+    defineTile(name, x, y) {
+        this.define(name, x * this.width, y * this.height, this.width, this.height);
     }
 
     draw(name, context, x, y) {
