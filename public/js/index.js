@@ -1,38 +1,13 @@
-import SpriteSheet from './spriteSheetAPI.js';
-import { loadImage, loadLevel } from './imageLoader.js';
+import compositor from './comp.js';
+import { loadLevel } from './imageLoader.js';
+import { createBackgroundLayer } from './layers.js';
+import { loadMario, loadSprites } from './sprites.js';
 
-
-
-
-function drawBackground(background, context, sprites) {
-    background.ranges.forEach(([x1, x2, y1, y2]) => {
-        // drawing sky
-        for (let x = x1; x < x2; x++) {
-            for (let y = y1; y < y2; y++) {
-                // by 16 because api does not accept tile sizes
-                sprites.drawTile(background.tile, context, x, y); // api call
-            }
-        }
-    });
-}
-
-// function for mario sprites
-function loadMario() {
-    return loadImage('/sprites/characters.png').then(image => {
-        const sprites = new SpriteSheet(image, 16, 16); // sprite API
-        sprites.define('idle', 276, 44, 16, 16); // mario position
-        return sprites;
-    });
-}
-
-// function for background sprites
-function loadSprites() {
-    return loadImage('/sprites/tileset.png').then(image => {
-        const sprites = new SpriteSheet(image, 16, 16); // sprite API
-        sprites.defineTile('ground', 0, 0);
-        sprites.defineTile('sky', 3, 23);
-        return sprites;
-    });
+// high order function
+function createSpriteLayer(sprites, position) {
+    return function drawSpriteLayer(context) {
+        sprites.draw('idle', context, position.x, position.y);
+    };
 }
 
 // get DOM element
@@ -45,10 +20,27 @@ Promise.all([
     loadSprites(),
     loadLevel('1-1')
 ]).then(([marioSprite, sprites, level]) => {
-    // load levels
-    level.backgrounds.forEach(background => {
-        console.log(background);
-        drawBackground(background, context, sprites);
-    });
-    marioSprite.draw('idle', context, 64, 64);
+    const comp = new compositor();
+    const backgroundLayers = createBackgroundLayer(level.backgrounds, sprites);
+    comp.layers.push(backgroundLayers);
+
+    const position = {
+        x: 64,
+        y: 64
+    };
+
+    const spriteLayer = createSpriteLayer(marioSprite, position);
+    comp.layers.push(spriteLayer);
+
+    // mario left trail so repeat background drawing
+    // for every new frame generated
+    function updateDrawMario() {
+        comp.draw(context);
+        marioSprite.draw('idle', context, position.x, position.y);
+        position.x += 2;
+        position.y += 2;
+        requestAnimationFrame(updateDrawMario); // frame repetition
+    }
+
+    updateDrawMario();
 });
