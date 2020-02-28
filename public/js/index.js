@@ -1,14 +1,13 @@
 import compositor from './comp.js';
+import Counter from './time.js';
 import { loadLevel } from './imageLoader.js';
-import { createBackgroundLayer } from './layers.js';
-import { loadMario, loadSprites } from './sprites.js';
+import { createMario } from './mario.js';
+import { loadSprites } from './sprites.js';
+import { createSpriteLayer, createBackgroundLayer } from './layers.js';
 
-// high order function
-function createSpriteLayer(sprites, position) {
-    return function drawSpriteLayer(context) {
-        sprites.draw('idle', context, position.x, position.y);
-    };
-}
+window.addEventListener('keydown', event => {
+    console.log(event);
+});
 
 // get DOM element
 const drawingboard = document.getElementById('screen');
@@ -16,31 +15,28 @@ const context = drawingboard.getContext('2d');
 
 // optimization and synchronization
 Promise.all([
-    loadMario(),
+    createMario(),
     loadSprites(),
     loadLevel('1-1')
-]).then(([marioSprite, sprites, level]) => {
+]).then(([mario, backgroundSprites, level]) => {
     const comp = new compositor();
-    const backgroundLayers = createBackgroundLayer(level.backgrounds, sprites);
+    const backgroundLayers = createBackgroundLayer(level.backgrounds, backgroundSprites);
     comp.layers.push(backgroundLayers);
 
-    const position = {
-        x: 64,
-        y: 64
-    };
+    const gravity = 2000;
+    mario.position.set(64, 180);
+    mario.velocity.set(200, -600);
 
-    const spriteLayer = createSpriteLayer(marioSprite, position);
+    const spriteLayer = createSpriteLayer(mario);
     comp.layers.push(spriteLayer);
 
+    const timer = new Counter(1 / 60);
     // mario left trail so repeat background drawing
     // for every new frame generated
-    function updateDrawMario() {
+    timer.update = function updateDrawMario(fulltime) {
+        mario.update(fulltime);
         comp.draw(context);
-        marioSprite.draw('idle', context, position.x, position.y);
-        position.x += 2;
-        position.y += 2;
-        requestAnimationFrame(updateDrawMario); // frame repetition
+        mario.velocity.y += gravity * fulltime;
     }
-
-    updateDrawMario();
+    timer.start();
 });
